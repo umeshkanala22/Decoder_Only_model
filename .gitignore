@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Model checkpoints (download from Hugging Face)
+checkpoints/*.pt
+checkpoints/*.pth
+checkpoints/*.ckpt
+!checkpoints/README.md
+
+# Data files (download from Hugging Face)
+data/*.txt
+data/*.csv
+data/*.pkl
+data/*.json
+!data/README.md
+
+# Logs
+logs/*.log
+logs/*.txt
+*.log
+
+# Results
+results/*.png
+results/*.jpg
+results/*.pdf
+results/*.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
