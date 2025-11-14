@@ -7,13 +7,20 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import torch
-import pandas as pd
 
 from config import Config
 
 
 def visualize_attention(attn_weights, tokens=None, heads_to_show=4, save_path=None):
+    """
+    Visualize attention weights as heatmap
 
+    Args:
+        attn_weights: Attention weights tensor (num_heads, seq_len, seq_len)
+        tokens: List of token strings (optional)
+        heads_to_show: Number of attention heads to display
+        save_path: Path to save the plot (optional)
+    """
     if isinstance(attn_weights, torch.Tensor):
         attn_weights = attn_weights.cpu().detach().numpy()
 
@@ -43,6 +50,7 @@ def visualize_attention(attn_weights, tokens=None, heads_to_show=4, save_path=No
         ax.set_xlabel('Key Position', fontsize=12)
         ax.set_ylabel('Query Position', fontsize=12)
 
+        # Add token labels if provided
         if tokens is not None:
             ax.set_xticklabels(tokens, rotation=90)
             ax.set_yticklabels(tokens, rotation=0)
@@ -58,7 +66,15 @@ def visualize_attention(attn_weights, tokens=None, heads_to_show=4, save_path=No
 
 
 def plot_training_curves(train_losses, val_losses, perplexities, save_path=None):
- 
+    """
+    Plot training and validation curves
+
+    Args:
+        train_losses: List of training losses
+        val_losses: List of validation losses
+        perplexities: List of perplexities
+        save_path: Path to save the plot
+    """
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
     epochs = range(1, len(train_losses) + 1)
@@ -98,7 +114,14 @@ def plot_training_curves(train_losses, val_losses, perplexities, save_path=None)
 
 
 def plot_combined_loss(train_losses, val_losses, save_path=None):
+    """
+    Plot training and validation loss on the same plot
 
+    Args:
+        train_losses: List of training losses
+        val_losses: List of validation losses
+        save_path: Path to save the plot
+    """
     plt.figure(figsize=(10, 6))
 
     epochs = range(1, len(train_losses) + 1)
@@ -120,7 +143,14 @@ def plot_combined_loss(train_losses, val_losses, save_path=None):
 
 
 def plot_beam_search_comparison(beam_widths, generation_times, save_path=None):
- 
+    """
+    Plot beam search benchmark results (Part 2.1)
+
+    Args:
+        beam_widths: List of beam widths
+        generation_times: List of average generation times
+        save_path: Path to save the plot
+    """
     plt.figure(figsize=(10, 6))
 
     plt.plot(beam_widths, generation_times, 'o-', linewidth=2, markersize=10, color='steelblue')
@@ -130,6 +160,7 @@ def plot_beam_search_comparison(beam_widths, generation_times, save_path=None):
     plt.title('Beam Search: Generation Time vs Beam Width', fontsize=16, fontweight='bold')
     plt.grid(True, alpha=0.3)
 
+    # Add value labels on points
     for bw, time in zip(beam_widths, generation_times):
         plt.annotate(f'{time:.3f}s', (bw, time), textcoords="offset points",
                     xytext=(0,10), ha='center', fontsize=10)
@@ -142,7 +173,15 @@ def plot_beam_search_comparison(beam_widths, generation_times, save_path=None):
 
 
 def plot_kv_cache_comparison(time_without, time_with, speedup, save_path=None):
+    """
+    Plot KV cache benchmark results (Part 2.2)
 
+    Args:
+        time_without: Time without KV cache
+        time_with: Time with KV cache
+        speedup: Speedup factor
+        save_path: Path to save the plot
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Bar plot for times
@@ -155,6 +194,7 @@ def plot_kv_cache_comparison(time_without, time_with, speedup, save_path=None):
     ax1.set_title('KV Cache: Generation Time Comparison', fontsize=14, fontweight='bold')
     ax1.grid(axis='y', alpha=0.3)
 
+    # Add value labels on bars
     for bar, time in zip(bars, times):
         height = bar.get_height()
         ax1.text(bar.get_x() + bar.get_width()/2., height,
@@ -178,7 +218,15 @@ def plot_kv_cache_comparison(time_without, time_with, speedup, save_path=None):
 
 
 def plot_gradient_accumulation_comparison(accum_steps, times, memory_usage, save_path=None):
+    """
+    Plot gradient accumulation benchmark results (Part 2.3)
 
+    Args:
+        accum_steps: List of accumulation steps
+        times: List of execution times
+        memory_usage: List of peak memory usage
+        save_path: Path to save the plot
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Time plot
@@ -207,7 +255,13 @@ def plot_gradient_accumulation_comparison(accum_steps, times, memory_usage, save
 
 
 def plot_gradient_checkpointing_comparison(results, save_path=None):
+    """
+    Plot gradient checkpointing benchmark results (Part 2.4)
 
+    Args:
+        results: Dictionary with benchmark results
+        save_path: Path to save the plot
+    """
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     # Time comparison
@@ -254,8 +308,13 @@ def plot_gradient_checkpointing_comparison(results, save_path=None):
 
 
 def plot_learning_rate_schedule(optimizer_history, save_path=None):
+    """
+    Plot learning rate schedule over training
 
-
+    Args:
+        optimizer_history: List of learning rates over epochs
+        save_path: Path to save the plot
+    """
     plt.figure(figsize=(10, 6))
 
     epochs = range(1, len(optimizer_history) + 1)
@@ -275,7 +334,14 @@ def plot_learning_rate_schedule(optimizer_history, save_path=None):
 
 
 def create_comparison_table(results, save_path=None):
+    """
+    Create a comparison table for experiment results
 
+    Args:
+        results: Dictionary with experiment results
+        save_path: Path to save the table
+    """
+    import pandas as pd
 
     df = pd.DataFrame(results)
 
@@ -291,4 +357,13 @@ def create_comparison_table(results, save_path=None):
     return df
 
 
-
+if __name__ == '__main__':
+    print("Visualization module loaded ")
+    print("\nAvailable visualization functions:")
+    print("  - visualize_attention(): Visualize attention weights")
+    print("  - plot_training_curves(): Plot training/validation curves")
+    print("  - plot_combined_loss(): Plot combined loss curve")
+    print("  - plot_beam_search_comparison(): Plot beam search results")
+    print("  - plot_kv_cache_comparison(): Plot KV cache results")
+    print("  - plot_gradient_accumulation_comparison(): Plot gradient accumulation results")
+    print("  - plot_gradient_checkpointing_comparison(): Plot gradient checkpointing results")

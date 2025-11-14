@@ -20,7 +20,22 @@ def generate(
     eos_token=None,
     device='cuda'
 ):
+    """
+    Generate text autoregressively from a prompt (basic greedy/sampling)
 
+    Args:
+        model: The transformer model
+        prompt: Input token indices (batch_size, prompt_len)
+        max_new_tokens: Maximum number of tokens to generate
+        temperature: Sampling temperature (higher = more random)
+        top_k: If set, only sample from top k tokens
+        top_p: If set, nucleus sampling (sample from top p probability mass)
+        eos_token: Stop generation if this token is generated
+        device: Device to use
+
+    Returns:
+        generated: Generated token indices (batch_size, prompt_len + generated_len)
+    """
     model.eval()
     prompt = prompt.to(device)
 
@@ -32,15 +47,18 @@ def generate(
             # Truncate to max_seq_len if too long
             context = generated if generated.size(1) <= model.max_seq_len else generated[:, -model.max_seq_len:]
 
+            # Forward pass
             logits, _ = model.forward(context)
 
 
             logits = logits[:, -1, :] / temperature
 
+            # Apply top-k filtering
             if top_k is not None:
                 v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
                 logits[logits < v[:, [-1]]] = float('-inf')
 
+            # Apply top-p (nucleus) filtering
             if top_p is not None:
                 sorted_logits, sorted_indices = torch.sort(logits, descending=True)
                 cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
@@ -77,7 +95,31 @@ def generate_beam_search(
     eos_token=None,
     device='cuda'
 ):
+    """
+    Generate text using beam search decoding (Part 2.1)
 
+    Beam search maintains top-k most probable sequences at each step,
+    exploring multiple paths simultaneously for better quality generation.
+
+    Args:
+        model: The transformer model
+        prompt: Input token indices (batch_size, prompt_len)
+            Note: batch_size should be 1 for beam search
+        beam_width: Number of beams to maintain (k)
+            Higher = better quality but slower
+        max_new_tokens: Maximum number of tokens to generate
+        temperature: Sampling temperature (higher = more diverse)
+        length_penalty: Length normalization factor
+            > 1.0 favors longer sequences
+            < 1.0 favors shorter sequences
+        eos_token: Stop generation if this token is generated
+        device: Device to use
+
+    Returns:
+        best_sequence: Best generated sequence (1, total_len)
+        best_score: Score of the best sequence
+        all_beams: List of (sequence, score) for all completed beams
+    """
     model.eval()
     prompt = prompt.to(device)
 
@@ -94,16 +136,21 @@ def generate_beam_search(
 
             # Expand each current beam
             for seq, score in beams:
+                # Check if this beam has already generated EOS
                 if eos_token is not None and seq[0, -1].item() == eos_token:
                     completed_beams.append((seq, score))
                     continue
 
+
                 context = seq if seq.size(1) <= model.max_seq_len else seq[:, -model.max_seq_len:]
 
+                # Forward pass
                 logits, _ = model.forward(context)
+
 
                 next_token_logits = logits[0, -1, :] / temperature
 
+                # Convert to log probabilities
                 log_probs = F.log_softmax(next_token_logits, dim=-1)
 
 
@@ -111,10 +158,13 @@ def generate_beam_search(
 
 
                 for log_prob, token_idx in zip(top_log_probs, top_indices):
+
                     new_seq = torch.cat([seq, token_idx.unsqueeze(0).unsqueeze(0)], dim=1)
+
 
                     new_score = score + log_prob.item()
 
+                    # Apply length penalty for normalization
                     seq_len = new_seq.size(1)
                     normalized_score = new_score / (seq_len ** length_penalty)
 
@@ -128,10 +178,11 @@ def generate_beam_search(
             all_candidates.sort(key=lambda x: x[2], reverse=True)
             beams = [(seq, score) for seq, score, _ in all_candidates[:beam_width]]
 
+            # Check if all beams are completed
             if len(beams) == 0:
                 break
 
-        # Add remaining beams to completed beams after loop finishes
+        # Add remaining beams to completed
         completed_beams.extend(beams)
 
         # Sort completed beams by normalized score
@@ -160,8 +211,26 @@ def generate_beam_search_batch(
     eos_token=None,
     device='cuda'
 ):
+    """
+    Generate text using beam search for a batch of prompts
 
+    This is a convenience wrapper that processes each prompt individually
+    since beam search operates on single inputs.
 
+    Args:
+        model: The transformer model
+        prompts: Input token indices (batch_size, prompt_len)
+        beam_width: Number of beams to maintain
+        max_new_tokens: Maximum number of tokens to generate
+        temperature: Sampling temperature
+        length_penalty: Length normalization factor
+        eos_token: Stop generation if this token is generated
+        device: Device to use
+
+    Returns:
+        generated_sequences: List of best sequences for each prompt
+        scores: List of scores for each sequence
+    """
     batch_size = prompts.size(0)
     generated_sequences = []
     scores = []
@@ -193,7 +262,24 @@ def generate_with_kv_cache(
     eos_token=None,
     device='cuda'
 ):
+    """
+    Generate text with KV caching for faster inference (Part 2.2)
 
+    KV caching reuses previously computed Key and Value tensors
+    instead of recomputing them at every step.
+
+    Args:
+        model: The transformer model
+        prompt: Input tokens (batch_size, prompt_len)
+        max_new_tokens: Max tokens to generate
+        temperature: Sampling temperature
+        top_k: Top-k sampling
+        eos_token: EOS token to stop generation
+        device: Device to use
+
+    Returns:
+        generated: Generated sequence
+    """
     model.eval()
     prompt = prompt.to(device)
     batch_size = prompt.size(0)
@@ -243,6 +329,7 @@ def generate_with_kv_cache(
 
             next_token_logits = logits[:, -1, :] / temperature
 
+            # Apply top-k filtering
             if top_k is not None:
                 v, _ = torch.topk(next_token_logits, min(top_k, next_token_logits.size(-1)))
                 next_token_logits[next_token_logits < v[:, [-1]]] = float('-inf')
@@ -254,6 +341,7 @@ def generate_with_kv_cache(
             # Append to sequence
             generated = torch.cat([generated, next_token], dim=1)
 
+            # Check for EOS
             if eos_token is not None and (next_token == eos_token).all():
                 break
 
@@ -261,10 +349,20 @@ def generate_with_kv_cache(
 
 
 def tokens_to_text(tokens, idx2word):
+    """
+    Convert token indices to text
 
+    Args:
+        tokens: Tensor or list of token indices
+        idx2word: Dictionary mapping indices to words
+
+    Returns:
+        text: Generated text string
+    """
     if isinstance(tokens, torch.Tensor):
         tokens = tokens.cpu().numpy().tolist()
 
+    # Handle batch dimension
     if isinstance(tokens[0], list):
         tokens = tokens[0]
 
@@ -282,18 +380,31 @@ def tokens_to_text(tokens, idx2word):
 
 
 def text_to_tokens(text, word2idx, max_seq_len=None):
+    """
+    Convert text to token indices
 
+    Args:
+        text: Input text string
+        word2idx: Dictionary mapping words to indices
+        max_seq_len: Maximum sequence length (optional)
+
+    Returns:
+        tokens: Tensor of token indices (1, seq_len)
+    """
     # Tokenize
     words = text.lower().strip().split()
 
+    # Convert to indices
     tokens = [word2idx.get(word, word2idx[Config.UNK_TOKEN]) for word in words]
 
+    # Add SOS token
     tokens = [word2idx[Config.SOS_TOKEN]] + tokens
 
     # Truncate if needed
     if max_seq_len is not None and len(tokens) > max_seq_len:
         tokens = tokens[:max_seq_len]
 
+    # Convert to tensor and add batch dimension
     tokens_tensor = torch.LongTensor(tokens).unsqueeze(0)
 
     return tokens_tensor
@@ -313,11 +424,31 @@ def generate_samples(
     device='cuda',
     use_kv_cache=False
 ):
+    """
+    Generate text samples from prompts using various methods
 
+    Args:
+        model: The transformer model
+        prompts: List of text prompts
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        method: Generation method ('greedy', 'sampling', 'beam_search')
+        max_new_tokens: Maximum tokens to generate
+        temperature: Sampling temperature
+        beam_width: Beam width for beam search
+        top_k: Top-k sampling
+        top_p: Nucleus sampling
+        device: Device to use
+        use_kv_cache: Whether to use KV caching
+
+    Returns:
+        generated_texts: List of generated text strings
+    """
     model.eval()
     generated_texts = []
 
     for prompt_text in prompts:
+        # Convert text to tokens
         prompt_tokens = text_to_tokens(prompt_text, word2idx, model.max_seq_len)
 
         # Generate based on method
@@ -350,10 +481,17 @@ def generate_samples(
                 device=device
             )
 
+        # Convert tokens to text
         generated_text = tokens_to_text(generated_tokens[0], idx2word)
         generated_texts.append(generated_text)
 
     return generated_texts
 
 
-
+if __name__ == '__main__':
+    print("Inference module loaded ")
+    print("\nAvailable generation methods:")
+    print("  - generate(): Basic autoregressive generation")
+    print("  - generate_beam_search(): Beam search decoding (Part 2.1)")
+    print("  - generate_with_kv_cache(): KV caching for faster inference (Part 2.2)")
+    print("  - generate_samples(): High-level interface for text generation")

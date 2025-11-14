@@ -1,0 +1,58 @@
+{
+  "beam_widths": [
+    1,
+    5,
+    10
+  ],
+  "generation_times": [
+    0.849051570892334,
+    4.1662109375,
+    7.47572340965271
+  ],
+  "generated_texts": {
+    "1": [
+      "once upon a time there was a lively and compassionate dog named tom. tom was a very kind dog. he had a sneaky collar that could shut rooms like a pond. every day, he would look for special things to find. one day, tom was walking in the sunshine and he saw something in",
+      "the little girl had fun. she was playing in the sand with her friends. but then she felt something special in her muscles. she ran out of the mud and found a shiny shell. she picked it up and reached inside. it was <unk> she saw lots of interesting things inside. the little",
+      "one day a little girl named mia went to the park with her mommy. she saw a crocodile that was alert for him. mia's mom gave her a big hat and said that if she could touch it. \"yes, you can ride home, lily!\" mia was excited. she ran very fast. she started",
+      "in the forest there was a big, hairy dog. he wanted to play but he didn't want to talk to the dog and invite him. he ran to spot and hugged him and tried for it, but he was too close. he kicked them, scary tears and the human was too lazy. he",
+      "there was a little boy who was 3 years old. he went to the mall which lived in the water. he could hardly contain all the colourful things, like it reached out of the pond nearby. every morning, little boy arrived at the park and he loved the view purple. one day, he"
+    ],
+    "5": [
+      "once upon a time there was a little girl named <unk> she was three years old and loved to explore the world around her. one day, <unk> was walking in the park when she saw something shiny in the grass. it was a <unk> <unk> <unk> was so excited that she ran over to",
+      "the little girl was walking in the park. she saw a big tree and wanted to climb it. she asked her mom if she could climb it. her mom said yes and they went to the tree. the little girl was so excited. she ran to the tree and started to climb. she",
+      "one day a little girl named lily went to the park with her mom. they saw a big tree with lots of leaves. lily wanted to climb the tree, but her mom said no. lily was sad, but her mom said it was too dangerous. lily was sad because she wanted to play",
+      "in the forest there was a little girl named lily. she loved to play with her toys and run around in the park. one day, she found a big box in the park. she picked it up and showed it to her mom. \"look, mommy! i found a <unk> she said. her mom",
+      "there was a little girl named <unk> she was three years old and loved to explore the world around her. one day, <unk> was walking in the park when she saw something shiny in the grass. it was a <unk> <unk> was so excited. she picked it up and showed it to her"
+    ],
+    "10": [
+      "once upon a time there was a little girl named lucy. she was three years old and loved to explore the world around her. one day, lucy was walking in the park when she saw something shiny in the grass. she bent down and picked it up. it was a <unk> lucy was so",
+      "the little girl was walking in the park. she saw a big tree with lots of leaves. she wanted to climb the tree and see what was on the other side. suddenly, she heard a loud noise. it was coming from a tree. she looked around and saw a little bird. the bird",
+      "one day a little girl named lily went to the park with her mom. they saw a big tree with lots of leaves. lily wanted to climb the tree and see what was on the other side. she asked her mom if she could go. her mom said yes and they went to",
+      "in the forest there was a little boy named timmy. timmy loved to play with his toys and run around in the park. one day, timmy's mom told him they were going to the park to play. timmy was so excited to play on the swings and slide. when they got to the",
+      "there was a little girl named <unk> she was three years old and loved to explore the world around her. one day, <unk> was walking in the park when she saw something shiny in the grass. it was a <unk> <unk> was so excited. she picked it up and showed it to her"
+    ]
+  },
+  "scores": {
+    "1": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "5": [
+      -29.13871859619394,
+      -35.19642497692257,
+      -28.272338698618114,
+      -28.856381016783416,
+      -29.12436239235103
+    ],
+    "10": [
+      -27.147125787567347,
+      -35.2244068114087,
+      -26.014196237549186,
+      -27.45171587727964,
+      -29.12436239235103
+    ]
+  }
+}

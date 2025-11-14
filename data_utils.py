@@ -46,6 +46,7 @@ def build_vocab(train_texts, min_freq=2, max_vocab_size=160000):
         Config.UNK_IDX: Config.UNK_TOKEN
     }
 
+    # Add words from most common
     current_idx = 4
     for word, freq in most_common:
         if freq >= min_freq:
@@ -84,6 +85,7 @@ def load_fasttext_embeddings(vocab, embedding_dim=300, kaggle_mode=True):
     print(f"Loading FastText embeddings (dim={embedding_dim})...")
 
     if kaggle_mode:
+        # Check if already downloaded, otherwise download
         import os
         cache_dir = os.path.expanduser('~/.cache/gensim/data')
         model_path = os.path.join(cache_dir, Config.FASTTEXT_MODEL_NAME)
@@ -97,6 +99,7 @@ def load_fasttext_embeddings(vocab, embedding_dim=300, kaggle_mode=True):
         print("FastText model loaded ")
 
     else:
+        # Load from local file if you've downloaded it
         print("Loading from local file...")
         import gensim
         fasttext_model = gensim.models.KeyedVectors.load_word2vec_format(
@@ -184,9 +187,17 @@ def create_embedding_matrix(vocab, embeddings_dict, embedding_dim=300):
 
 
 class TinyStoriesDataset(Dataset):
-
+    """
+    PyTorch Dataset for TinyStories
+    Tokenizes text and converts to tensor indices
+    """
     def __init__(self, texts, word2idx, max_seq_len=64):
-
+        """
+        Args:
+            texts: List of text strings
+            word2idx: Vocabulary mapping
+            max_seq_len: Maximum sequence length (for padding/truncation)
+        """
         self.texts = texts
         self.word2idx = word2idx
         self.max_seq_len = max_seq_len
@@ -195,12 +206,23 @@ class TinyStoriesDataset(Dataset):
         return len(self.texts)
 
     def tokenize(self, text):
+        """
+        Tokenize text into word indices
 
+        Args:
+            text: Input text string
+
+        Returns:
+            tokens: List of token indices
+        """
+        # Lowercase and split
         words = text.lower().strip().split()
 
+        # Convert to indices
         tokens = [self.word2idx.get(word, self.word2idx[Config.UNK_TOKEN])
                  for word in words]
 
+        # Add SOS and EOS tokens
         tokens = [self.word2idx[Config.SOS_TOKEN]] + tokens + [self.word2idx[Config.EOS_TOKEN]]
 
         # Truncate if too long
@@ -214,10 +236,17 @@ class TinyStoriesDataset(Dataset):
         return tokens
 
     def __getitem__(self, idx):
+        """
+        Get a single item
 
+        Returns:
+            input_ids: Token indices for input (all tokens except last)
+            target_ids: Token indices for target (all tokens except first)
+        """
         text = self.texts[idx]
         tokens = self.tokenize(text)
 
+        # Convert to tensor
         tokens_tensor = torch.LongTensor(tokens)
 
 
@@ -231,7 +260,22 @@ class TinyStoriesDataset(Dataset):
 
 def create_dataloaders(train_texts, val_texts, word2idx, batch_size=32,
                        max_seq_len=64, num_workers=2, pin_memory=True):
+    """
+    Create PyTorch DataLoaders for training and validation
 
+    Args:
+        train_texts: List of training text strings
+        val_texts: List of validation text strings
+        word2idx: Vocabulary mapping
+        batch_size: Batch size
+        max_seq_len: Maximum sequence length
+        num_workers: Number of worker processes
+        pin_memory: Whether to pin memory (faster GPU transfer)
+
+    Returns:
+        train_loader: DataLoader for training
+        val_loader: DataLoader for validation
+    """
     print("Creating datasets...")
 
 
@@ -267,7 +311,17 @@ def create_dataloaders(train_texts, val_texts, word2idx, batch_size=32,
 
 
 def load_tinystories_dataset(num_train_samples=None, num_val_samples=None):
+    """
+    Load TinyStories dataset from HuggingFace
 
+    Args:
+        num_train_samples: Number of training samples (None for all)
+        num_val_samples: Number of validation samples (None for all)
+
+    Returns:
+        train_texts: List of training texts
+        val_texts: List of validation texts
+    """
     print("Loading TinyStories dataset from HuggingFace...")
 
     dataset = load_dataset("roneneldan/TinyStories")
@@ -304,7 +358,7 @@ def save_vocabulary(word2idx, idx2word, save_path):
 
 
 def load_vocabulary(load_path):
-
+    """Load vocabulary dictionaries from file"""
     with open(load_path, 'rb') as f:
         vocab_data = pickle.load(f)
     print(f"Vocabulary loaded from {load_path}")
@@ -312,12 +366,13 @@ def load_vocabulary(load_path):
 
 
 def save_embedding_matrix(embedding_matrix, save_path):
-
+    """Save embedding matrix to file"""
     np.save(save_path, embedding_matrix)
     print(f"Embedding matrix saved to {save_path}")
 
 
 def load_embedding_matrix(load_path):
+    """Load embedding matrix from file"""
     embedding_matrix = np.load(load_path)
     print(f"Embedding matrix loaded from {load_path}")
     return embedding_matrix
@@ -327,6 +382,7 @@ if __name__ == '__main__':
     # Test data utilities
     print("Testing data utilities...")
 
+    # Load small subset for testing
     train_texts, val_texts = load_tinystories_dataset(
         num_train_samples=1000,
         num_val_samples=100

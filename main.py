@@ -1,4 +1,7 @@
-
+"""
+Main Entry Point
+Orchestrates training, evaluation, and inference
+"""
 
 import argparse
 import torch
@@ -22,12 +25,22 @@ from inference import generate_samples
 
 
 def setup_environment(config):
-    """Setup random seed and device"""
+    """
+    Setup environment: seed, device, etc.
+
+    Args:
+        config: Configuration object
+
+    Returns:
+        device: Device to use
+    """
     print("=" * 60)
     print("ENVIRONMENT SETUP")
     print("=" * 60)
 
+
     set_seed(config.SEED)
+
 
     device = get_device(prefer_cuda=(config.DEVICE == 'cuda'))
 
@@ -35,17 +48,31 @@ def setup_environment(config):
 
 
 def prepare_data(config):
+    """
+    Prepare data: load dataset, build vocabulary, create embeddings
 
+    Args:
+        config: Configuration object
+
+    Returns:
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        embedding_matrix: Pretrained embedding matrix
+        train_loader: Training dataloader
+        val_loader: Validation dataloader
+    """
     print("\n" + "=" * 60)
     print("DATA PREPARATION")
     print("=" * 60)
 
+    # Load TinyStories dataset
     print("\n1. Loading TinyStories dataset...")
     train_texts, val_texts = load_tinystories_dataset(
         num_train_samples=config.NUM_TRAIN_SAMPLES,
         num_val_samples=config.NUM_VAL_SAMPLES
     )
 
+    # Check if vocabulary and embeddings are already cached
     import os
     vocab_exists = os.path.exists(config.VOCAB_PATH)
     embeddings_exist = os.path.exists(config.EMBEDDING_MATRIX_PATH)
@@ -65,8 +92,10 @@ def prepare_data(config):
             max_vocab_size=config.VOCAB_SIZE
         )
 
+        # Save vocabulary
         save_vocabulary(word2idx, idx2word, config.VOCAB_PATH)
 
+        # Load FastText embeddings (if using pretrained)
         embedding_matrix = None
         if config.USE_PRETRAINED_EMBEDDINGS:
             print("\n3. Loading FastText embeddings...")
@@ -77,11 +106,13 @@ def prepare_data(config):
                     kaggle_mode=config.KAGGLE_MODE
                 )
 
+
                 print("\n4. Creating embedding matrix...")
                 embedding_matrix = create_embedding_matrix(
                     word2idx, embeddings_dict, config.EMBEDDING_DIM
                 )
 
+                # Save embedding matrix
                 save_embedding_matrix(embedding_matrix, config.EMBEDDING_MATRIX_PATH)
 
                 # Clean up to save memory
@@ -143,7 +174,21 @@ def create_model(config, vocab_size, embedding_matrix=None):
 
 
 def run_training(model, train_loader, val_loader, config, device):
+    """
+    Run training
 
+    Args:
+        model: Transformer model
+        train_loader: Training dataloader
+        val_loader: Validation dataloader
+        config: Configuration object
+        device: Device to use
+
+    Returns:
+        train_losses: List of training losses
+        val_losses: List of validation losses
+        perplexities: List of perplexities
+    """
     print("\n" + "=" * 60)
     print("TRAINING")
     print("=" * 60)
@@ -174,7 +219,17 @@ def run_training(model, train_loader, val_loader, config, device):
 
 
 def run_evaluation(model, val_loader, word2idx, idx2word, config, device):
+    """
+    Run evaluation and benchmarks
 
+    Args:
+        model: Transformer model
+        val_loader: Validation dataloader
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        config: Configuration object
+        device: Device to use
+    """
     print("\n" + "=" * 60)
     print("EVALUATION")
     print("=" * 60)
@@ -207,7 +262,18 @@ def run_evaluation(model, val_loader, word2idx, idx2word, config, device):
 
 
 def run_part2_experiments(model, train_loader, val_loader, word2idx, idx2word, config, device):
+    """
+    Run Part 2 enhancement experiments
 
+    Args:
+        model: Transformer model
+        train_loader: Training dataloader
+        val_loader: Validation dataloader
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        config: Configuration object
+        device: Device to use
+    """
     print("\n" + "=" * 60)
     print("PART 2: ENHANCEMENT EXPERIMENTS")
     print("=" * 60)
@@ -291,6 +357,7 @@ def main():
     # Prepare data
     word2idx, idx2word, embedding_matrix, train_loader, val_loader = prepare_data(config)
 
+    # Create model
     model = create_model(config, len(word2idx), embedding_matrix)
     model = model.to(device)
 

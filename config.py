@@ -8,18 +8,25 @@ import os
 
 
 class Config:
+    """Configuration class with all hyperparameters"""
 
-
+    # ============================================
     # DEVICE CONFIGURATION
+    # ============================================
     DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+    # ============================================
     # DATA CONFIGURATION
-
+    # ============================================
+    # Choose your scale: Quick test: 10k, Medium: 100k, Full: entire dataset
+    # Using balanced 90/10 split with max available validation data
     NUM_TRAIN_SAMPLES = 197910  # Number of training samples to use (90% of balanced split)
     NUM_VAL_SAMPLES = 21990     # Number of validation samples to use (all available - 10% of balanced split)
 
-
-    VOCAB_SIZE = 10000          # Maximum vocabulary size 
+    # ============================================
+    # VOCABULARY CONFIGURATION
+    # ============================================
+    VOCAB_SIZE = 10000          # Maximum vocabulary size (optimized for fastest training)
     MIN_FREQ = 1                # Minimum word frequency to include in vocab
 
     # Special tokens
@@ -33,7 +40,9 @@ class Config:
     EOS_IDX = 2
     UNK_IDX = 3
 
+    # ============================================
     # MODEL ARCHITECTURE
+    # ============================================
     D_MODEL = 300               # Embedding dimension (matches FastText)
     NUM_HEADS = 6               # Number of attention heads (must divide D_MODEL)
     NUM_LAYERS = 5              # Number of transformer blocks
@@ -46,28 +55,34 @@ class Config:
     USE_PRETRAINED_EMBEDDINGS = True  # Whether to use FastText embeddings
     FREEZE_EMBEDDINGS = False   # Whether to freeze embedding weights
 
+    # ============================================
     # TRAINING CONFIGURATION
+    # ============================================
     BATCH_SIZE = 32
     LEARNING_RATE = 3e-4
     NUM_EPOCHS = 5
     WEIGHT_DECAY = 0.01
 
+    # Gradient clipping
     CLIP_GRAD_NORM = 1.0
 
     # Learning rate scheduler
     USE_LR_SCHEDULER = True
-    LR_SCHEDULER_TYPE = 'cosine'
+    LR_SCHEDULER_TYPE = 'cosine'  # 'cosine', 'step', or 'plateau'
     WARMUP_STEPS = 1000
 
+    # ============================================
     # OPTIMIZATION ENHANCEMENTS (Part 2)
+    # ============================================
     # Gradient accumulation (Part 2.3)
-    GRADIENT_ACCUMULATION_STEPS = 1 
-    # Effective batch size = BATCH_SIZE * ACCUM_STEPS
+    GRADIENT_ACCUMULATION_STEPS = 1  # Effective batch size = BATCH_SIZE * ACCUM_STEPS
 
     # Gradient checkpointing (Part 2.4)
     USE_GRADIENT_CHECKPOINTING = False  # Memory-efficient training
 
+    # ============================================
     # INFERENCE CONFIGURATION
+    # ============================================
     # Basic generation
     MAX_GEN_LENGTH = 100        # Maximum tokens to generate
     TEMPERATURE = 1.0           # Sampling temperature
@@ -81,7 +96,9 @@ class Config:
     # KV caching (Part 2.2)
     USE_KV_CACHE = True         # Enable KV caching for faster inference
 
+    # ============================================
     # EVALUATION CONFIGURATION
+    # ============================================
     # Number of samples for different experiments
     NUM_SAMPLES_BEAM = 5        # Samples for beam search evaluation
     NUM_SAMPLES_KV = 20         # Samples for KV cache benchmark
@@ -92,7 +109,9 @@ class Config:
     # Gradient accumulation experiments
     ACCUM_STEPS_LIST = [1, 2, 4, 8]  # Different accumulation steps to compare
 
+    # ============================================
     # FILE PATHS
+    # ============================================
     # Base directories
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -100,6 +119,7 @@ class Config:
     RESULTS_DIR = os.path.join(BASE_DIR, 'results')
     LOGS_DIR = os.path.join(BASE_DIR, 'logs')
 
+    # Create directories
     os.makedirs(DATA_DIR, exist_ok=True)
     os.makedirs(CHECKPOINT_DIR, exist_ok=True)
     os.makedirs(RESULTS_DIR, exist_ok=True)
@@ -118,24 +138,35 @@ class Config:
     COMBINED_LOSS_PATH = os.path.join(RESULTS_DIR, 'combined_loss.png')
     ATTENTION_VIZ_PATH = os.path.join(RESULTS_DIR, 'attention_visualization.png')
 
+    # ============================================
     # LOGGING CONFIGURATION
-    LOG_INTERVAL = 100         
-    SAVE_INTERVAL = 1           
-    EVAL_INTERVAL = 1           
-   
-    SEED = 42                   
+    # ============================================
+    LOG_INTERVAL = 100          # Log every N batches
+    SAVE_INTERVAL = 1           # Save checkpoint every N epochs
+    EVAL_INTERVAL = 1           # Evaluate every N epochs
 
+    # ============================================
+    # REPRODUCIBILITY
+    # ============================================
+    SEED = 42                   # Random seed for reproducibility
+
+    # ============================================
     # DATA LOADING
+    # ============================================
     NUM_WORKERS = 2             # Number of workers for data loading
     PIN_MEMORY = True if DEVICE == 'cuda' else False
 
+    # ============================================
     # FASTTEXT CONFIGURATION
+    # ============================================
     FASTTEXT_MODEL_NAME = 'fasttext-wiki-news-subwords-300'
-    KAGGLE_MODE = True         
+    KAGGLE_MODE = True          # Use gensim API (works on Kaggle)
 
+    # ============================================
     # EXPERIMENT TRACKING
+    # ============================================
     EXPERIMENT_NAME = 'decoder_transformer'
-    TRACK_EXPERIMENTS = False   
+    TRACK_EXPERIMENTS = False   # Enable experiment tracking (e.g., wandb)
 
     @classmethod
     def display(cls):
@@ -146,6 +177,7 @@ class Config:
         print(f"Device: {cls.DEVICE}")
         print(f"\nData:")
 
+        # Handle None values for training samples
         train_samples_str = "ALL (2.1M+)" if cls.NUM_TRAIN_SAMPLES is None else f"{cls.NUM_TRAIN_SAMPLES:,}"
         val_samples_str = "ALL (22K)" if cls.NUM_VAL_SAMPLES is None else f"{cls.NUM_VAL_SAMPLES:,}"
 
@@ -175,6 +207,7 @@ class Config:
     def estimate_training_time(cls):
         """Estimate training time"""
         if cls.NUM_TRAIN_SAMPLES is None:
+            # Use approximate full dataset size (2.1M samples)
             num_samples = 2119719
             print(f"Using full dataset (~{num_samples:,} samples)")
         else:
@@ -203,7 +236,18 @@ class QuickTestConfig(Config):
     NUM_LAYERS = 3
 
 
+class FullScaleConfig(Config):
+    """Full-scale configuration for best performance"""
+    NUM_TRAIN_SAMPLES = None  # Use entire dataset
+    NUM_VAL_SAMPLES = None    # Use entire validation set
+    VOCAB_SIZE = 200000
+    NUM_EPOCHS = 10
+    NUM_LAYERS = 6
+    BATCH_SIZE = 64
+
+
 if __name__ == '__main__':
+    # Display configuration when run directly
     Config.display()
     print("\n")
     Config.estimate_training_time()

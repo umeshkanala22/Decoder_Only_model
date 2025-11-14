@@ -105,6 +105,7 @@ for accum_steps in ACCUMULATION_STEPS:
     print(f"Effective Batch Size = {effective_batch_size}")
     print(f"{'=' * 70}")
 
+    # Create dataloaders with fixed base batch size
     train_loader, val_loader = create_dataloaders(
         train_texts, val_texts, word2idx,
         batch_size=BASE_BATCH_SIZE,
@@ -116,6 +117,7 @@ for accum_steps in ACCUMULATION_STEPS:
     print(f"Train batches: {len(train_loader)}")
     print(f"Val batches: {len(val_loader)}")
 
+    # Create fresh model for each experiment
     model = DecoderOnlyTransformer(
         vocab_size=len(word2idx),
         d_model=Config.D_MODEL,

@@ -9,13 +9,24 @@ from tqdm import tqdm
 import time
 import numpy as np
 from collections import defaultdict
-from inference import text_to_tokens, generate, generate_with_kv_cache
-from evaluate import load
+
 from config import Config
 from utils import calculate_perplexity, format_time
-from inference import text_to_tokens, tokens_to_text, generate_beam_search, generate
+
 
 def evaluate_perplexity(model, dataloader, device='cuda'):
+    """
+    Calculate perplexity on a dataset
+
+    Args:
+        model: Transformer model
+        dataloader: Dataloader for evaluation
+        device: Device to use
+
+    Returns:
+        perplexity: Perplexity value
+        avg_loss: Average loss
+    """
     model.eval()
     total_loss = 0
     total_tokens = 0
@@ -40,19 +51,56 @@ def evaluate_perplexity(model, dataloader, device='cuda'):
 
 
 def calculate_bleu_score(references, hypotheses):
+    """
+    Calculate BLEU score for generated text
 
-    
-    bleu = load("bleu")
+    Args:
+        references: List of reference texts (list of lists of words)
+        hypotheses: List of hypothesis texts (list of lists of words)
 
+    Returns:
+        bleu_score: BLEU score
+    """
+    try:
+        from evaluate import load
+        bleu = load("bleu")
 
-    results = bleu.compute(predictions=hypotheses, references=references)
-    return results['bleu']
-
+        # Format for evaluate library
+        results = bleu.compute(predictions=hypotheses, references=references)
+        return results['bleu']
+    except ImportError:
+        print("Warning: evaluate library not installed. Using simple BLEU approximation.")
+        # Simple BLEU-1 approximation
+        scores = []
+        for ref, hyp in zip(references, hypotheses):
+            ref_set = set(ref)
+            hyp_set = set(hyp)
+            if len(hyp_set) == 0:
+                scores.append(0.0)
+            else:
+                precision = len(ref_set & hyp_set) / len(hyp_set)
+                scores.append(precision)
+        return np.mean(scores)
 
 
 def benchmark_beam_search(model, prompts, word2idx, idx2word, beam_widths=[1, 5, 10],
                           max_new_tokens=50, device='cuda'):
+    """
+    Benchmark beam search with different beam widths (Part 2.1)
 
+    Args:
+        model: Transformer model
+        prompts: List of text prompts
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        beam_widths: List of beam widths to test
+        max_new_tokens: Maximum tokens to generate
+        device: Device to use
+
+    Returns:
+        results: Dictionary with benchmark results
+    """
+    from inference import text_to_tokens, tokens_to_text, generate_beam_search, generate
 
     results = {
         'beam_widths': beam_widths,
@@ -113,7 +161,8 @@ def benchmark_beam_search(model, prompts, word2idx, idx2word, beam_widths=[1, 5,
         print(f"Average generation time: {avg_time:.4f}s")
         print(f"Sample output: {texts[0][:100]}...")
 
-
+    # Print comparison
+    print("\n" + "="*60)
     print("BEAM SEARCH COMPARISON")
     print("="*60)
     for beam_width, avg_time in zip(beam_widths, results['generation_times']):
@@ -124,6 +173,22 @@ def benchmark_beam_search(model, prompts, word2idx, idx2word, beam_widths=[1, 5,
 
 def benchmark_kv_cache(model, prompts, word2idx, idx2word, num_samples=20,
                       max_new_tokens=50, device='cuda'):
+    """
+    Benchmark KV caching speedup (Part 2.2)
+
+    Args:
+        model: Transformer model
+        prompts: List of text prompts
+        word2idx: Word to index mapping
+        idx2word: Index to word mapping
+        num_samples: Number of samples to test
+        max_new_tokens: Maximum tokens to generate
+        device: Device to use
+
+    Returns:
+        results: Dictionary with benchmark results
+    """
+    from inference import text_to_tokens, generate, generate_with_kv_cache
 
     results = {
         'without_cache': {'time': 0, 'texts': []},
@@ -191,12 +256,28 @@ def benchmark_kv_cache(model, prompts, word2idx, idx2word, num_samples=20,
     speedup = time_without_cache / time_with_cache
     results['speedup'] = speedup
 
+    print("\n" + "="*60)
+    print(f"SPEEDUP: {speedup:.2f}x faster with KV caching")
+    print("="*60)
+
     return results
 
 
 def benchmark_gradient_accumulation(model, train_loader, accum_steps_list=[1, 2, 4, 8],
                                     num_batches=10, device='cuda'):
+    """
+    Benchmark gradient accumulation (Part 2.3)
 
+    Args:
+        model: Transformer model
+        train_loader: Training dataloader
+        accum_steps_list: List of accumulation steps to test
+        num_batches: Number of batches to test
+        device: Device to use
+
+    Returns:
+        results: Dictionary with benchmark results
+    """
     from train import train_epoch
 
     results = {
@@ -267,7 +348,19 @@ def benchmark_gradient_accumulation(model, train_loader, accum_steps_list=[1, 2,
 
 def benchmark_gradient_checkpointing(model_with_cp, model_without_cp, train_loader,
                                     num_batches=10, device='cuda'):
+    """
+    Benchmark gradient checkpointing (Part 2.4)
 
+    Args:
+        model_with_cp: Model with gradient checkpointing enabled
+        model_without_cp: Model without gradient checkpointing
+        train_loader: Training dataloader
+        num_batches: Number of batches to test
+        device: Device to use
+
+    Returns:
+        results: Dictionary with benchmark results
+    """
     results = {
         'without_checkpointing': {'time': 0, 'memory': 0},
         'with_checkpointing': {'time': 0, 'memory': 0},
@@ -360,4 +453,12 @@ def benchmark_gradient_checkpointing(model_with_cp, model_without_cp, train_load
     return results
 
 
-
+if __name__ == '__main__':
+    print("Evaluation module loaded ")
+    print("\nAvailable evaluation functions:")
+    print("  - evaluate_perplexity(): Calculate perplexity on dataset")
+    print("  - calculate_bleu_score(): Calculate BLEU score")
+    print("  - benchmark_beam_search(): Benchmark beam search (Part 2.1)")
+    print("  - benchmark_kv_cache(): Benchmark KV caching (Part 2.2)")
+    print("  - benchmark_gradient_accumulation(): Benchmark gradient accumulation (Part 2.3)")
+    print("  - benchmark_gradient_checkpointing(): Benchmark gradient checkpointing (Part 2.4)")

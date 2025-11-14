@@ -8,7 +8,7 @@ import torch.nn as nn
 import os
 from tqdm import tqdm
 import time
-from utils import load_checkpoint
+
 from config import Config
 from utils import (
     save_checkpoint, get_lr, clip_gradients, calculate_perplexity,
@@ -17,35 +17,66 @@ from utils import (
 
 
 def train_epoch(model, train_loader, optimizer, device, clip_grad_norm=1.0, accum_steps=1):
-    """Train for one epoch with gradient accumulation"""
+    """
+    Train for one epoch with gradient accumulation support (Part 2.3)
+
+    Args:
+        model: Transformer model
+        train_loader: Training dataloader
+        optimizer: Optimizer
+        device: Device
+        clip_grad_norm: Gradient clipping value
+        accum_steps: Number of gradient accumulation steps (default=1 means no accumulation)
+
+    Returns:
+        avg_loss: Average loss for the epoch
+    """
     model.train()
+
     total_loss = 0
     total_tokens = 0
+
+    # Zero gradients at the start
     optimizer.zero_grad()
 
     progress_bar = tqdm(train_loader, desc="Training")
 
     for batch_idx, (input_seq, target_seq) in enumerate(progress_bar):
+        # Move to device
         input_seq = input_seq.to(device)
         target_seq = target_seq.to(device)
 
+        # Forward pass
         logits, loss = model(input_seq, targets=target_seq)
+
+        # Scale loss by accumulation steps
         loss = loss / accum_steps
+
+        # Backward pass (accumulate gradients)
         loss.backward()
 
+        # Update weights only every accum_steps
         if (batch_idx + 1) % accum_steps == 0:
+            # Gradient clipping
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)
+
+            # Update weights
             optimizer.step()
+
+            # Zero gradients for next accumulation cycle
             optimizer.zero_grad()
 
+        # Track metrics (unscale loss for logging)
         total_loss += loss.item() * accum_steps
         total_tokens += (target_seq != model.pad_idx).sum().item()
 
+        # Update progress bar
         progress_bar.set_postfix({
             'loss': f'{loss.item() * accum_steps:.4f}',
             'avg_loss': f'{total_loss / (batch_idx + 1):.4f}'
         })
 
+    # Handle remaining gradients if last batch wasn't a multiple
     if (batch_idx + 1) % accum_steps != 0:
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip_grad_norm)
         optimizer.step()
@@ -76,9 +107,11 @@ def validate(model, val_loader, device):
 
     with torch.no_grad():
         for input_seq, target_seq in progress_bar:
+            # Move to device
             input_seq = input_seq.to(device)
             target_seq = target_seq.to(device)
 
+            # Forward pass
             logits, loss = model(input_seq, targets=target_seq)
 
             # Track loss
@@ -199,6 +232,7 @@ def train_transformer(
         print(f"  Learning Rate: {optimizer.param_groups[0]['lr']:.2e}")
         print(f"  Epoch Time: {format_time(epoch_time)}")
 
+        # Save best model
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             checkpoint_path = os.path.join(save_dir, 'best_model.pt')
@@ -209,7 +243,8 @@ def train_transformer(
             )
             print(f"   Saved best model (val_loss: {val_loss:.4f})")
 
-            checkpoint_path = os.path.join(save_dir, f'checkpoint_epoch_{epoch+1}.pt')
+        # Save checkpoint every epoch
+        checkpoint_path = os.path.join(save_dir, f'checkpoint_epoch_{epoch+1}.pt')
         save_checkpoint(
             model, optimizer, epoch, val_loss, checkpoint_path,
             train_loss=train_loss,
@@ -269,11 +304,28 @@ def resume_training(
     num_additional_epochs=5,
     device='cuda'
 ):
+    """
+    Resume training from a checkpoint
 
+    Args:
+        model: Transformer model
+        train_loader: Training dataloader
+        val_loader: Validation dataloader
+        checkpoint_path: Path to checkpoint
+        num_additional_epochs: Number of additional epochs to train
+        device: Device to use
+
+    Returns:
+        train_losses: List of training losses
+        val_losses: List of validation losses
+        perplexities: List of perplexities
+    """
+    from utils import load_checkpoint
 
 
     optimizer = torch.optim.Adam(model.parameters(), lr=Config.LEARNING_RATE)
 
+    # Load checkpoint
     checkpoint = load_checkpoint(model, checkpoint_path, optimizer, device)
 
     start_epoch = checkpoint.get('epoch', 0) + 1
@@ -291,4 +343,11 @@ def resume_training(
     )
 
 
-
+if __name__ == '__main__':
+    print("Training module loaded ")
+    print("\nAvailable training functions:")
+    print("  - train_epoch(): Train for one epoch with gradient accumulation")
+    print("  - validate(): Validate the model")
+    print("  - train_transformer(): Complete training loop")
+    print("  - train_with_config(): Train using configuration")
+    print("  - resume_training(): Resume from checkpoint")

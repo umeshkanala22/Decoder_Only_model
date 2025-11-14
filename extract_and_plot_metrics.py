@@ -1,4 +1,6 @@
-
+"""
+Extract training metrics from checkpoints and create plots
+"""
 
 import torch
 import matplotlib.pyplot as plt
@@ -88,7 +90,12 @@ if valid_perp:
 else:
     perp_epochs, perp_vals = [], []
 
-
+# ============================================
+# PLOT 1: Training Loss Curve
+# ============================================
+print("\n" + "=" * 60)
+print("CREATING PLOTS")
+print("=" * 60)
 
 if train_vals:
     print("\n1. Creating Training Loss Curve...")
@@ -112,7 +119,9 @@ if train_vals:
     print(f"   Saved to: {save_path}")
     plt.close()
 
-
+# ============================================
+# PLOT 2: Validation Loss Curve
+# ============================================
 if val_vals:
     print("\n2. Creating Validation Loss Curve...")
     plt.figure(figsize=(10, 6))
@@ -160,7 +169,9 @@ if perp_vals:
     print(f"   Saved to: {save_path}")
     plt.close()
 
-
+# ============================================
+# PLOT 4: Combined Training & Validation Loss
+# ============================================
 if train_vals or val_vals:
     print("\n4. Creating Combined Loss Plot...")
     plt.figure(figsize=(12, 7))
@@ -229,6 +240,9 @@ plt.savefig(save_path, dpi=300, bbox_inches='tight')
 print(f"   Saved to: {save_path}")
 plt.close()
 
+# ============================================
+# SUMMARY
+# ============================================
 print("\n" + "=" * 60)
 print("SUMMARY")
 print("=" * 60)

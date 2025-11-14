@@ -14,7 +14,12 @@ from typing import Dict, Any
 
 
 def set_seed(seed=42):
+    """
+    Set random seed for reproducibility
 
+    Args:
+        seed: Random seed value
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -28,7 +33,15 @@ def set_seed(seed=42):
 
 
 def get_device(prefer_cuda=True):
+    """
+    Get the best available device
 
+    Args:
+        prefer_cuda: Whether to prefer CUDA if available
+
+    Returns:
+        device: torch.device object
+    """
     if prefer_cuda and torch.cuda.is_available():
         device = torch.device('cuda')
         print(f"Using CUDA device: {torch.cuda.get_device_name(0)}")
@@ -42,7 +55,16 @@ def get_device(prefer_cuda=True):
 
 
 def count_parameters(model, trainable_only=True):
+    """
+    Count model parameters
 
+    Args:
+        model: PyTorch model
+        trainable_only: Whether to count only trainable parameters
+
+    Returns:
+        num_params: Number of parameters
+    """
     if trainable_only:
         num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     else:
@@ -52,7 +74,12 @@ def count_parameters(model, trainable_only=True):
 
 
 def print_model_summary(model):
+    """
+    Print detailed model summary
 
+    Args:
+        model: PyTorch model
+    """
     print("=" * 60)
     print("MODEL SUMMARY")
     print("=" * 60)
@@ -83,7 +110,12 @@ def print_model_summary(model):
 
 
 def get_memory_usage():
+    """
+    Get current memory usage
 
+    Returns:
+        memory_info: Dictionary with memory statistics
+    """
     memory_info = {}
 
     # CPU memory
@@ -121,7 +153,17 @@ def clear_memory():
 
 
 def save_checkpoint(model, optimizer, epoch, loss, save_path, **kwargs):
+    """
+    Save model checkpoint
 
+    Args:
+        model: PyTorch model
+        optimizer: Optimizer
+        epoch: Current epoch
+        loss: Current loss
+        save_path: Path to save checkpoint
+        **kwargs: Additional information to save
+    """
     checkpoint = {
         'epoch': epoch,
         'model_state_dict': model.state_dict(),
@@ -135,10 +177,21 @@ def save_checkpoint(model, optimizer, epoch, loss, save_path, **kwargs):
 
 
 def load_checkpoint(model, checkpoint_path, optimizer=None, device='cuda'):
+    """
+    Load model checkpoint
 
+    Args:
+        model: PyTorch model
+        checkpoint_path: Path to checkpoint
+        optimizer: Optimizer (optional)
+        device: Device to load model to
+
+    Returns:
+        checkpoint: Dictionary with checkpoint information
+    """
     checkpoint = torch.load(checkpoint_path, map_location=device)
 
-    model.load_state_dict(checkpoint['model_state_dict'])
+    model.load_state_dict(checkpoint['model_state_dict'], strict=False)
 
     if optimizer is not None and 'optimizer_state_dict' in checkpoint:
         optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
@@ -151,19 +204,42 @@ def load_checkpoint(model, checkpoint_path, optimizer=None, device='cuda'):
 
 
 def get_lr(optimizer):
+    """
+    Get current learning rate from optimizer
 
+    Args:
+        optimizer: PyTorch optimizer
+
+    Returns:
+        lr: Current learning rate
+    """
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
 
 def clip_gradients(model, max_norm=1.0):
+    """
+    Clip gradients by norm
 
+    Args:
+        model: PyTorch model
+        max_norm: Maximum gradient norm
+
+    Returns:
+        total_norm: Total gradient norm before clipping
+    """
     total_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
     return total_norm.item()
 
 
 def freeze_layers(model, layer_names):
+    """
+    Freeze specific layers
 
+    Args:
+        model: PyTorch model
+        layer_names: List of layer names to freeze
+    """
     for name, param in model.named_parameters():
         for layer_name in layer_names:
             if layer_name in name:
@@ -172,7 +248,13 @@ def freeze_layers(model, layer_names):
 
 
 def unfreeze_layers(model, layer_names):
+    """
+    Unfreeze specific layers
 
+    Args:
+        model: PyTorch model
+        layer_names: List of layer names to unfreeze
+    """
     for name, param in model.named_parameters():
         for layer_name in layer_names:
             if layer_name in name:
@@ -181,7 +263,15 @@ def unfreeze_layers(model, layer_names):
 
 
 def get_model_size_mb(model):
+    """
+    Calculate model size in MB
 
+    Args:
+        model: PyTorch model
+
+    Returns:
+        size_mb: Model size in megabytes
+    """
     param_size = 0
     for param in model.parameters():
         param_size += param.nelement() * param.element_size()
@@ -196,7 +286,15 @@ def get_model_size_mb(model):
 
 
 def format_time(seconds):
-  
+    """
+    Format seconds into human-readable time
+
+    Args:
+        seconds: Time in seconds
+
+    Returns:
+        time_str: Formatted time string
+    """
     hours = int(seconds // 3600)
     minutes = int((seconds % 3600) // 60)
     secs = int(seconds % 60)
@@ -210,7 +308,15 @@ def format_time(seconds):
 
 
 def calculate_perplexity(loss):
+    """
+    Calculate perplexity from cross-entropy loss
 
+    Args:
+        loss: Cross-entropy loss value
+
+    Returns:
+        perplexity: Perplexity value
+    """
     return torch.exp(torch.tensor(loss)).item()
 
 
@@ -235,9 +341,16 @@ class AverageMeter:
 
 
 class EarlyStopping:
-
+    """
+    Early stopping to stop training when validation loss doesn't improve
+    """
     def __init__(self, patience=5, min_delta=0, mode='min'):
-  
+        """
+        Args:
+            patience: Number of epochs to wait before stopping
+            min_delta: Minimum change to qualify as improvement
+            mode: 'min' or 'max' (for loss or accuracy)
+        """
         self.patience = patience
         self.min_delta = min_delta
         self.mode = mode
@@ -246,7 +359,15 @@ class EarlyStopping:
         self.early_stop = False
 
     def __call__(self, score):
+        """
+        Check if training should stop
 
+        Args:
+            score: Current validation metric
+
+        Returns:
+            should_stop: Boolean indicating whether to stop
+        """
         if self.best_score is None:
             self.best_score = score
             return False
@@ -273,7 +394,17 @@ class EarlyStopping:
 
 
 def create_learning_rate_scheduler(optimizer, scheduler_type='cosine', **kwargs):
+    """
+    Create learning rate scheduler
 
+    Args:
+        optimizer: PyTorch optimizer
+        scheduler_type: Type of scheduler ('cosine', 'step', 'plateau')
+        **kwargs: Additional arguments for scheduler
+
+    Returns:
+        scheduler: Learning rate scheduler
+    """
     if scheduler_type == 'cosine':
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
