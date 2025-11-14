@@ -109,7 +109,9 @@ python extract_and_plot_metrics.py
     ├── training_summary.txt               # Training summary
     └── metrics_table.md                   # Metrics table
 ```
+## 🏗️ More Details about data and the saved model
 
+"for running please install model from the hugging face silvesage22/Decoder_only_model"
 ## 🔧 Implementation Details
 
 ### Core Components (All Implemented from Scratch)
@@ -218,28 +220,8 @@ Edit `config.py` to modify:
 - Memory-efficient backpropagation
 - Trade compute for memory
 
-## 📝 Citation
 
-Dataset:
-```bibtex
-@article{eldan2023tinystories,
-  title={TinyStories: How Small Can Language Models Be and Still Speak Coherent English?},
-  author={Eldan, Ronen and Li, Yuanzhi},
-  journal={arXiv preprint arXiv:2305.07759},
-  year={2023}
-}
-```
 
-Transformer Architecture:
-```bibtex
-@article{vaswani2017attention,
-  title={Attention is all you need},
-  author={Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
-  journal={Advances in neural information processing systems},
-  volume={30},
-  year={2017}
-}
-```
 
 ## 📧 Contact
 

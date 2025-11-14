@@ -349,16 +349,7 @@ def generate_with_kv_cache(
 
 
 def tokens_to_text(tokens, idx2word):
-    """
-    Convert token indices to text
 
-    Args:
-        tokens: Tensor or list of token indices
-        idx2word: Dictionary mapping indices to words
-
-    Returns:
-        text: Generated text string
-    """
     if isinstance(tokens, torch.Tensor):
         tokens = tokens.cpu().numpy().tolist()
 
